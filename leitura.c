@@ -61,8 +61,7 @@ void flelinha(FILE *fp, char *nro, char *nome, char *carro){
 	c = fgetc(fp);
 }
 
-
-int main (int argc, char *argv[]){
+void learquivo (){
 	FILE *fp;
 	char str[100];
  	char nro[4];
@@ -71,11 +70,7 @@ int main (int argc, char *argv[]){
 	
 	int nReg; // numero de registros....
 	
-	if (argc < 2) {
-		printf ("Erro: uso do programa: %s <nome do arquivo>\n", argv[0]);
-		exit (0);
-	}
-	fp = fopen(argv[1], "r");
+	fp = fopen("TabelaInicial.txt", "r");
 
 	// le o nro de registros
 	fscanf(fp, "nro de registros = %d\n", &nReg);
@@ -89,5 +84,47 @@ int main (int argc, char *argv[]){
 	}
 
 	fclose (fp);
+}
+
+void menu() {
+	int run = 1;
+
+	while(run)
+	{
+		int op;
+		printf("\n\nSelecione uma operacao:\n");
+		printf("1. inserir\n2. remover\n3. alterar\n4. procurar\n5. compactar\n6. sair");
+		printf("\nOperacao: ");
+		scanf("%d%*c", &op);
+		switch(op) {
+		case 1:
+			
+			break;
+		case 2:
+			
+			break;
+		case 3:
+			
+			break;
+		case 4:
+			
+			break;
+		case 5:
+
+			break;
+		case 6:
+			run = 0;
+			break;
+		default:
+			printf("\n<Erro: selecione uma operacao valida>\n");
+			break;
+		}
+	}
+}
+
+int main (){
+	learquivo();
+	menu();
+
 }
  	
