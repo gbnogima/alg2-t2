@@ -1,9 +1,133 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include "arquivo.h"
+#include "ArvoreBinaria.h"
 
 #define TAMREG 84
+
+int nReg;
+
+//Altera chave(nro) para que possua sempre 3 digitos
+void formata_chave (char *chave) {
+	int n = atoi(chave);
+	if (n < 10) {
+		sprintf(chave, "00%d", n);
+	}
+	else if (n < 100) {
+		sprintf(chave, "0%d", n);
+	}
+}
+
+//Altera rrn para que possua sempre 5 digitos
+void formata_rrn (char *rrn) {
+	int n = atoi(rrn);
+	if (n < 10) {
+		sprintf(rrn, "0000%d", n);
+	}
+	else if (n < 100) {
+		sprintf(rrn, "000%d", n);
+	}
+	else if (n < 1000) {
+		sprintf(rrn, "00%d", n);
+	}
+	else if (n < 10000) {
+		sprintf(rrn, "0%d", n);
+	}
+}
+
+void carrega_memoria(Arvore *T){
+	FILE *fp;
+	fp = fopen("primario.ndx", "r");
+	char str1[4], str2[6], c;
+	fscanf(fp, "%d", &nReg);
+	printf("nReg = %d\n", nReg);
+	for (int i = 0; i < nReg; i++) {
+		getc(fp);
+		fgets(str1, sizeof(str1), fp);
+		getc(fp);
+		fgets(str2, sizeof(str2), fp);
+		insere_abb(&(T->raiz), str1, str2);
+	}
+	fclose(fp);
+}
+
+void grava_indice(no *n, FILE *fp) {
+	if (n == NULL) 
+		return;
+
+	grava_indice(n->esq, fp);
+	fprintf(fp, "%s %s\n", n->chave, n->rrn);
+	grava_indice(n->dir, fp);
+}
+
+void imprime_arvore(no *n) {
+	if (n == NULL) 
+		return;
+
+	imprime_arvore(n->esq);
+	printf("%s ", n->chave);
+	printf("%s\n", n->rrn);
+	imprime_arvore(n->dir);
+}
+
+void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
+	FILE *fp;
+	fp = fopen("dados.txt", "a");
+	formata_chave(nro);
+	fprintf(fp, "%*s", 3, nro);
+	fprintf(fp, "%*s", 40, nome);
+	fprintf(fp, "%*s", 20, carro);
+	fclose(fp);
+
+	char rrn[6], str[6];
+	sprintf(str, "%d", nReg);
+	strcpy(rrn, str);
+	formata_rrn(rrn);
+	insere_abb(&(T->raiz), nro, rrn);
+	nReg++;
+}
+
+void inserir (Arvore *T) {
+	char nro[4];
+	char nome [41];
+	char carro [21];
+	printf("\n\nInsira os seguintes dados:\n");
+	printf("NRO: ");
+	scanf("%[^\n]s", nro);
+	setbuf(stdin, NULL);
+	printf("Nome: ");
+	scanf("%[^\n]s", nome);
+	setbuf(stdin, NULL);
+	printf("Carro: ");
+	scanf("%[^\n]s", carro);
+	setbuf(stdin, NULL);
+	insere_arq(nro, nome, carro, T);
+	
+}
+
+void remove_arq (Arvore *T, int rrn) {
+	FILE *fp;
+	fp = fopen("dados.txt", "r+");
+	fseek(fp, rrn*63, SEEK_SET);
+	fputs("$", fp);
+	fclose(fp);
+	nReg--;
+}
+
+void remover (Arvore *T) {
+	char nro[3];
+	printf("\n\nInsira os seguintes dados:\n");
+	printf("NRO: ");
+	scanf("%[^\n]s", nro);
+	setbuf(stdin, NULL);
+	int rrn = busca_rrn_abb(T->raiz, nro);
+	remove_abb(&(T->raiz), nro);
+	remove_arq(T, rrn);
+}
+
+void procurar (Arvore *T) {
+
+}
 
 
 /* 
@@ -17,9 +141,7 @@ char *trim (char *str) {
 	str[i+1] = '\0';
 
 	return str;
-
 }
-
 
 void flelinha(FILE *fp, char *nro, char *nome, char *carro){
 	
@@ -61,7 +183,7 @@ void flelinha(FILE *fp, char *nro, char *nome, char *carro){
 	c = fgetc(fp);
 }
 
-void learquivo (){
+void learquivo (Arvore *T){
 	FILE *fp;
 	char str[100];
  	char nro[4];
@@ -80,34 +202,34 @@ void learquivo (){
 
 	for (int i = 0; i < nReg; ++i) {
 		flelinha(fp, nro, nome, carro);	
-        printf("nro=%s**nome=%s**carro=%s**\n", nro,nome,carro);
+        //printf("nro=%s**nome=%s**carro=%s**\n", nro,nome,carro);
+        insere_arq(nro, nome, carro, T);
 	}
 
 	fclose (fp);
 }
 
-void menu() {
+void menu(Arvore *T) {
 	int run = 1;
 
-	while(run)
-	{
+	while(run) {
 		int op;
-		printf("\n\nSelecione uma operacao:\n");
+		printf("Selecione uma operacao:\n");
 		printf("1. inserir\n2. remover\n3. alterar\n4. procurar\n5. compactar\n6. sair");
 		printf("\nOperacao: ");
 		scanf("%d%*c", &op);
 		switch(op) {
 		case 1:
-			
+			inserir(T);
 			break;
 		case 2:
-			
+			remover(T);
 			break;
 		case 3:
-			
+			//alterar();
 			break;
 		case 4:
-			
+			procurar(T);
 			break;
 		case 5:
 
@@ -123,8 +245,19 @@ void menu() {
 }
 
 int main (){
-	learquivo();
-	menu();
 
+	Arvore *T = malloc(sizeof(Arvore));
+	cria_abb(T);
+	//carrega_memoria(T);
+	learquivo(T);
+	menu(T);
+
+
+	FILE *fp = fopen("primario.ndx", "w");
+	fprintf(fp, "%d\n", nReg);
+	grava_indice(T->raiz, fp);
+	fclose(fp);
+
+
+	//imprime_arvore(T->raiz);
 }
- 	
