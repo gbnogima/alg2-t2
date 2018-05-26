@@ -88,6 +88,7 @@ void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 }
 
 void inserir (Arvore *T) {
+	printf("[INSERIR]\n");
 	char nro[4];
 	char nome [41];
 	char carro [21];
@@ -115,6 +116,7 @@ void remove_arq (Arvore *T, int rrn) {
 }
 
 void remover (Arvore *T) {
+	printf("[REMOVER]\n");
 	char nro[3];
 	printf("\n\nInsira os seguintes dados:\n");
 	printf("NRO: ");
@@ -126,6 +128,14 @@ void remover (Arvore *T) {
 }
 
 void procurar (Arvore *T) {
+	printf("[PROCURAR]\n");
+	char nro[3];
+	printf("\n\nInsira os seguintes dados:\n");
+	printf("NRO: ");
+	scanf("%[^\n]s", nro);
+	setbuf(stdin, NULL);
+	int rrn = busca_rrn_abb(T->raiz, nro);
+
 
 }
 
