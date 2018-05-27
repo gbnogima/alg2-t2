@@ -211,6 +211,26 @@ void procurar (Arvore *T) {
  	fclose(fp);
 }
 
+void compactar () {
+	//int ret = rename("dados.txt", "old_dados.txt");
+	
+	FILE *fr, *fw;
+	fr = fopen("dados.txt", "r");
+	fw = fopen("dados_aux.txt", "w");
+	char input[64];
+	for(int i = 0; i < nRRN; i++){
+		fgets(input, sizeof(input), fr);
+		if (input[0] != '$'){
+			fputs(input, fw);
+		}
+	}
+
+	fclose(fr);
+	fclose(fw);
+	remove("dados.txt");
+	rename("dados_aux.txt", "dados.txt");
+}
+
 /* 
    funcao que percorre a string de tras para frente eliminando os espacos em branco...
 */
@@ -296,7 +316,7 @@ void menu(Arvore *T) {
 	printf("TRABALHO DE ALG II\n");
 	while(run) {
 		int op;
-		printf("\n\n\nSelecione uma operacao:\n");
+		printf("\n\nSelecione uma operacao:\n");
 		printf("1. inserir\n2. remover\n3. alterar\n4. procurar\n5. compactar\n6. sair");
 		printf("\nOperacao: ");
 		scanf("%d%*c", &op);
@@ -315,7 +335,7 @@ void menu(Arvore *T) {
 			procurar(T);
 			break;
 		case 5:
-
+			compactar();
 			break;
 		case 6:
 			run = 0;
