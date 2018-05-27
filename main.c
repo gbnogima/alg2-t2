@@ -5,7 +5,8 @@
 
 #define TAMREG 84
 
-int nReg;
+int nRegistro;
+int nRRN;
 
 //Altera chave(nro) para que possua sempre 3 digitos
 void formata_chave (char *chave) {
@@ -35,13 +36,28 @@ void formata_rrn (char *rrn) {
 	}
 }
 
+//Remove espaços em branco das strings
+char *formata_string (char *str) {
+	int i = 0, j = 0;
+	while(str[i] == ' '){
+		i++;
+	}
+	while(i < strlen(str)){
+		str[j++] = str[i++];
+	}
+	while(j < strlen(str)){
+		str[j++] = ' ';
+	}
+	return str;
+}
+
 void carrega_memoria(Arvore *T){
 	FILE *fp;
 	fp = fopen("primario.ndx", "r");
 	char str1[4], str2[6], c;
-	fscanf(fp, "%d", &nReg);
-	printf("nReg = %d\n", nReg);
-	for (int i = 0; i < nReg; i++) {
+	fscanf(fp, "%d", &nRegistro);
+	//printf("nReg = %d\n", nReg);
+	for (int i = 0; i < nRegistro; i++) {
 		getc(fp);
 		fgets(str1, sizeof(str1), fp);
 		getc(fp);
@@ -80,11 +96,12 @@ void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 	fclose(fp);
 
 	char rrn[6], str[6];
-	sprintf(str, "%d", nReg);
+	sprintf(str, "%d", nRRN);
 	strcpy(rrn, str);
 	formata_rrn(rrn);
 	insere_abb(&(T->raiz), nro, rrn);
-	nReg++;
+	nRegistro++;
+	nRRN++;
 }
 
 void inserir (Arvore *T) {
@@ -92,10 +109,9 @@ void inserir (Arvore *T) {
 	char nro[4];
 	char nome [41];
 	char carro [21];
-	printf("\n\nInsira os seguintes dados:\n");
+	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
-	scanf("%[^\n]s", nro);
-	setbuf(stdin, NULL);
+	scanf("%s", nro);
 	printf("Nome: ");
 	scanf("%[^\n]s", nome);
 	setbuf(stdin, NULL);
@@ -103,7 +119,6 @@ void inserir (Arvore *T) {
 	scanf("%[^\n]s", carro);
 	setbuf(stdin, NULL);
 	insere_arq(nro, nome, carro, T);
-	
 }
 
 void remove_arq (Arvore *T, int rrn) {
@@ -112,13 +127,13 @@ void remove_arq (Arvore *T, int rrn) {
 	fseek(fp, rrn*63, SEEK_SET);
 	fputs("$", fp);
 	fclose(fp);
-	nReg--;
+	nRegistro--;
 }
 
 void remover (Arvore *T) {
 	printf("[REMOVER]\n");
 	char nro[3];
-	printf("\n\nInsira os seguintes dados:\n");
+	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%[^\n]s", nro);
 	setbuf(stdin, NULL);
@@ -127,18 +142,74 @@ void remover (Arvore *T) {
 	remove_arq(T, rrn);
 }
 
-void procurar (Arvore *T) {
-	printf("[PROCURAR]\n");
-	char nro[3];
-	printf("\n\nInsira os seguintes dados:\n");
+void alterar (Arvore *T) {
+	printf("[ALTERAR]\n");
+	char nro[4];
+	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
-	scanf("%[^\n]s", nro);
-	setbuf(stdin, NULL);
+	scanf("%s", nro);
 	int rrn = busca_rrn_abb(T->raiz, nro);
+	FILE *fp;
+	fp = fopen("dados.txt", "r");
+	fseek(fp, rrn*63, SEEK_SET);
+ 	char nome [41], carro [21];
+ 	fgets(nro, sizeof(nro), fp);
+ 	fgets(nome, sizeof(nome), fp);
+ 	fgets(carro, sizeof(carro), fp);
+ 	printf("NRO: %s\n", nro);	
+ 	printf("NOME: %s\n", formata_string(nome));
+ 	printf("CARRO: %s\n", formata_string(carro));
+ 	fclose(fp);
 
 
+ 	remove_abb(&(T->raiz), nro);
+	remove_arq(T, rrn);
+
+
+ 	printf("\nSelecione um campo para alterar: \n1. NRO\n2. NOME\n3. CARRO\n");
+ 	int op;
+ 	printf("Operacao: ");
+	scanf("%d%*c", &op);
+	switch(op) {
+		case 1:
+			printf("\nNovo NRO: ");
+			scanf("%s", nro);
+			insere_arq(nro, nome, carro, T);
+			break;
+		case 2:
+			printf("\nNovo Nome: ");
+			scanf("%[^\n]s", nome);
+			setbuf(stdin, NULL);
+			insere_arq(nro, nome, carro, T);
+			break;
+		case 3:
+			printf("\nNovo Carro: ");
+			scanf("%[^\n]s", carro);
+			setbuf(stdin, NULL);
+			insere_arq(nro, nome, carro, T);
+			break;
+	}
 }
 
+void procurar (Arvore *T) {
+	printf("[PROCURAR]\n");
+	char nro[4];
+	printf("Insira os seguintes dados:\n");
+	printf("NRO: ");
+	scanf("%s", nro);
+	int rrn = busca_rrn_abb(T->raiz, nro);
+	FILE *fp;
+	fp = fopen("dados.txt", "r");
+	fseek(fp, rrn*63, SEEK_SET);
+ 	char nome [41], carro [21];
+ 	fgets(nro, sizeof(nro), fp);
+ 	fgets(nome, sizeof(nome), fp);
+ 	fgets(carro, sizeof(carro), fp);
+ 	printf("NRO: %s\n", nro);	
+ 	printf("NOME: %s\n", formata_string(nome));
+ 	printf("CARRO: %s\n", formata_string(carro));
+ 	fclose(fp);
+}
 
 /* 
    funcao que percorre a string de tras para frente eliminando os espacos em branco...
@@ -221,13 +292,15 @@ void learquivo (Arvore *T){
 
 void menu(Arvore *T) {
 	int run = 1;
-
+	printf("\e[H\e[2J");
+	printf("TRABALHO DE ALG II\n");
 	while(run) {
 		int op;
-		printf("Selecione uma operacao:\n");
+		printf("\n\n\nSelecione uma operacao:\n");
 		printf("1. inserir\n2. remover\n3. alterar\n4. procurar\n5. compactar\n6. sair");
 		printf("\nOperacao: ");
 		scanf("%d%*c", &op);
+		printf("\e[H\e[2J");
 		switch(op) {
 		case 1:
 			inserir(T);
@@ -236,7 +309,7 @@ void menu(Arvore *T) {
 			remover(T);
 			break;
 		case 3:
-			//alterar();
+			alterar(T);
 			break;
 		case 4:
 			procurar(T);
@@ -255,7 +328,8 @@ void menu(Arvore *T) {
 }
 
 int main (){
-
+	nRRN = 0;
+	nRegistro = 0;
 	Arvore *T = malloc(sizeof(Arvore));
 	cria_abb(T);
 	//carrega_memoria(T);
@@ -264,7 +338,7 @@ int main (){
 
 
 	FILE *fp = fopen("primario.ndx", "w");
-	fprintf(fp, "%d\n", nReg);
+	fprintf(fp, "%d\n", nRegistro);
 	grava_indice(T->raiz, fp);
 	fclose(fp);
 
