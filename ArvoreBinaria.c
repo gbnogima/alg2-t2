@@ -1,3 +1,11 @@
+/*
+TRABALHO DE ALGORITMOS E ESTRUTURAS DE DADOS II
+
+Alunos:
+Guilherme Brunassi Nogima (9771629)
+Carlos Henrique de Oliveira Franco (9771608)
+*/
+
 #include "ArvoreBinaria.h"
 
 void cria_abb (Arvore *T) {

@@ -1,12 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/*
+TRABALHO DE ALGORITMOS E ESTRUTURAS DE DADOS II
+
+Alunos:
+Guilherme Brunassi Nogima (9771629)
+Carlos Henrique de Oliveira Franco (9771608)
+*/
+
 #include "ArvoreBinaria.h"
 
 #define TAMREG 84
+#define REG_LEN 63
 
-int nRegistro;
-int nRRN;
+int nRegistro;//Quantidade de registro
+int nRRN;//Quantidade de registros no arquivo de dados, incluindo os removidos
 
 //Altera chave(nro) para que possua sempre 3 digitos
 void formata_chave (char *chave) {
@@ -51,12 +57,20 @@ char *formata_string (char *str) {
 	return str;
 }
 
+/*
+Carrega o arquivo de índices, no início do programa, do disco para a memória principal
+*/
 void carrega_memoria(Arvore *T){
 	FILE *fp;
 	fp = fopen("primario.ndx", "r");
+	if (fp == NULL){
+		nRRN = 0;
+		nRegistro = 0;
+		return;
+	}
 	char str1[4], str2[6], c;
 	fscanf(fp, "%d", &nRegistro);
-	//printf("nReg = %d\n", nReg);
+	fscanf(fp, "%d", &nRRN);
 	for (int i = 0; i < nRegistro; i++) {
 		getc(fp);
 		fgets(str1, sizeof(str1), fp);
@@ -67,6 +81,9 @@ void carrega_memoria(Arvore *T){
 	fclose(fp);
 }
 
+/*
+Grava o índice primário, armazenado em memória primária, no arquivo de índices no disco
+*/
 void grava_indice(no *n, FILE *fp) {
 	if (n == NULL) 
 		return;
@@ -76,15 +93,6 @@ void grava_indice(no *n, FILE *fp) {
 	grava_indice(n->dir, fp);
 }
 
-void imprime_arvore(no *n) {
-	if (n == NULL) 
-		return;
-
-	imprime_arvore(n->esq);
-	printf("%s ", n->chave);
-	printf("%s\n", n->rrn);
-	imprime_arvore(n->dir);
-}
 
 void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 	FILE *fp;
@@ -94,7 +102,6 @@ void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 	fprintf(fp, "%*s", 40, nome);
 	fprintf(fp, "%*s", 20, carro);
 	fclose(fp);
-
 	char rrn[6], str[6];
 	sprintf(str, "%d", nRRN);
 	strcpy(rrn, str);
@@ -112,6 +119,7 @@ void inserir (Arvore *T) {
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%s", nro);
+	setbuf(stdin, NULL);
 	printf("Nome: ");
 	scanf("%[^\n]s", nome);
 	setbuf(stdin, NULL);
@@ -124,7 +132,7 @@ void inserir (Arvore *T) {
 void remove_arq (Arvore *T, int rrn) {
 	FILE *fp;
 	fp = fopen("dados.txt", "r+");
-	fseek(fp, rrn*63, SEEK_SET);
+	fseek(fp, rrn*REG_LEN, SEEK_SET);
 	fputs("$", fp);
 	fclose(fp);
 	nRegistro--;
@@ -148,10 +156,11 @@ void alterar (Arvore *T) {
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%s", nro);
+	setbuf(stdin, NULL);
 	int rrn = busca_rrn_abb(T->raiz, nro);
 	FILE *fp;
 	fp = fopen("dados.txt", "r");
-	fseek(fp, rrn*63, SEEK_SET);
+	fseek(fp, rrn*REG_LEN, SEEK_SET);
  	char nome [41], carro [21];
  	fgets(nro, sizeof(nro), fp);
  	fgets(nome, sizeof(nome), fp);
@@ -197,10 +206,11 @@ void procurar (Arvore *T) {
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%s", nro);
+	setbuf(stdin, NULL);
 	int rrn = busca_rrn_abb(T->raiz, nro);
 	FILE *fp;
 	fp = fopen("dados.txt", "r");
-	fseek(fp, rrn*63, SEEK_SET);
+	fseek(fp, rrn*REG_LEN, SEEK_SET);
  	char nome [41], carro [21];
  	fgets(nro, sizeof(nro), fp);
  	fgets(nome, sizeof(nome), fp);
@@ -211,13 +221,11 @@ void procurar (Arvore *T) {
  	fclose(fp);
 }
 
-void compactar () {
-	//int ret = rename("dados.txt", "old_dados.txt");
-	
+void compactar () {	
 	FILE *fr, *fw;
 	fr = fopen("dados.txt", "r");
 	fw = fopen("dados_aux.txt", "w");
-	char input[64];
+	char input[REG_LEN+1];
 	for(int i = 0; i < nRRN; i++){
 		fgets(input, sizeof(input), fr);
 		if (input[0] != '$'){
@@ -229,7 +237,9 @@ void compactar () {
 	fclose(fw);
 	remove("dados.txt");
 	rename("dados_aux.txt", "dados.txt");
+	nRRN = nRegistro;
 }
+
 
 /* 
    funcao que percorre a string de tras para frente eliminando os espacos em branco...
@@ -284,7 +294,7 @@ void flelinha(FILE *fp, char *nro, char *nome, char *carro){
 	c = fgetc(fp);
 }
 
-void learquivo (Arvore *T){
+void le_arquivo (Arvore *T){
 	FILE *fp;
 	char str[100];
  	char nro[4];
@@ -313,10 +323,10 @@ void learquivo (Arvore *T){
 void menu(Arvore *T) {
 	int run = 1;
 	printf("\e[H\e[2J");
-	printf("TRABALHO DE ALG II\n");
+	printf("TRABALHO DE ALG II\nAlunos: \n\tGuilherme Brunassi Nogima (9771629)\n\tCarlos Henrique de Oliveira Franco (9771608)\n");
 	while(run) {
 		int op;
-		printf("\n\nSelecione uma operacao:\n");
+		printf("\n------------------------------------------------------\nSelecione uma operacao:\n");
 		printf("1. inserir\n2. remover\n3. alterar\n4. procurar\n5. compactar\n6. sair");
 		printf("\nOperacao: ");
 		scanf("%d%*c", &op);
@@ -348,20 +358,18 @@ void menu(Arvore *T) {
 }
 
 int main (){
-	nRRN = 0;
-	nRegistro = 0;
 	Arvore *T = malloc(sizeof(Arvore));
 	cria_abb(T);
-	//carrega_memoria(T);
-	learquivo(T);
+	carrega_memoria(T);
+	FILE *f = fopen("dados.txt", "r");
+	if (f == NULL) //Verifica se há um arquivo de dados e se a tabela já foi lida
+		le_arquivo(T); //Função de leitura fornecida
 	menu(T);
-
-
 	FILE *fp = fopen("primario.ndx", "w");
-	fprintf(fp, "%d\n", nRegistro);
+	fprintf(fp, "%d ", nRegistro);
+	fprintf(fp, "%d\n", nRRN);
 	grava_indice(T->raiz, fp);
 	fclose(fp);
 
-
-	//imprime_arvore(T->raiz);
+	return 0;
 }
