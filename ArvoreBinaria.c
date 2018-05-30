@@ -12,6 +12,23 @@ void cria_abb (Arvore *T) {
 	T->raiz = NULL;
 }
 
+void destroi_no (no **n) {
+	if (*n == NULL)
+		return;
+	destroi_no(&(*n)->esq);
+	destroi_no(&(*n)->dir);
+	free(*n);
+	*n = NULL;
+}
+
+void destroi_abb (Arvore *T) {
+	if (T->raiz == NULL) {
+		return;
+	}
+	destroi_no(&(T->raiz));
+	free(T);
+}
+
 int IsEmpty (Arvore *T) {
 	if (T->raiz == NULL)
 		return 1;

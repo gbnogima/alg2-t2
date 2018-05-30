@@ -21,6 +21,8 @@ typedef struct {
 } Arvore;
 
 void cria_abb (Arvore*);
+void destroi_no (no **);
+void destroi_abb (Arvore *);
 int IsEmpty (Arvore*);
 void insere_abb(no **, char *, char *);
 no *busca_abb(no *, char *);

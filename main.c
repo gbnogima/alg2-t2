@@ -180,15 +180,27 @@ void procurar (Arvore *T) {
  	fclose(fp);
 }
 
-void compactar () {	
+void compactar (Arvore *T) {	
+	destroi_no(&(T->raiz));
 	FILE *fr, *fw;
 	fr = fopen("dados.txt", "r");
 	fw = fopen("dados_aux.txt", "w");
-	char input[REG_LEN+1];
+	char nro[4];
+	char nome [41];
+	char carro [21];
+	char rrn[6];
+	int j = 0;
 	for(int i = 0; i < nRRN; i++){
-		fgets(input, sizeof(input), fr);
-		if (input[0] != '$'){
-			fputs(input, fw);
+		fgets(nro, sizeof(nro), fr);
+	 	fgets(nome, sizeof(nome), fr);
+	 	fgets(carro, sizeof(carro), fr);
+		if (nro[0] != '$'){
+			fputs(nro, fw);
+			fputs(nome, fw);
+			fputs(carro, fw);
+			sprintf(rrn, "%d", j++);
+			formata_rrn(rrn);
+			insere_abb(&(T->raiz), nro, rrn);
 		}
 	}
 
@@ -249,7 +261,7 @@ void menu(Arvore *T) {
 			procurar(T);
 			break;
 		case 5:
-			compactar();
+			compactar(T);
 			break;
 		case 6:
 			run = 0;
@@ -274,6 +286,7 @@ int main (){
 	fprintf(fp, "%d\n", nRRN);
 	grava_indice(T->raiz, fp);
 	fclose(fp);
+	destroi_abb(T);
 
 	return 0;
 }
