@@ -15,13 +15,64 @@ Carlos Henrique de Oliveira Franco (9771608)
 int nRegistro;//Quantidade de registro
 int nRRN;//Quantidade de registros no arquivo de dados, incluindo os removidos
 
+/*
+Reconstrói o índice primário a partir do arquivo de dados caso seja detectado que ele está desatualizado
+*/
+void reconstroi_indice(Arvore *T){
+	nRRN = 0;
+	nRegistro = 0;
+	FILE *fr;
+	fr = fopen("dados.txt", "r");
+	char nro[4];
+	char nome [41];
+	char carro [21];
+	char rrn[6];
+	int j = 0;
+	while(fgets(nro, sizeof(nro), fr) != NULL){
+	 	fgets(nome, sizeof(nome), fr);
+	 	fgets(carro, sizeof(carro), fr);
+	 	nRRN++;
+		if (nro[0] != '$'){
+			sprintf(rrn, "%d", nRegistro++);
+			formata_rrn(rrn);
+			insere_abb(&(T->raiz), nro, rrn);
+		}
+	}
+
+	fclose(fr);
+}
+
+/*
+Verifica se o indice está atualizado
+*/
+int verifica_indice(Arvore *T) {
+	FILE *fp;
+
+	fp = fopen("flag.txt", "r+");
+
+	int flag;
+	fscanf(fp, "%d", &flag);
+	if (flag == 1){
+		reconstroi_indice(T);
+	}
+	fseek(fp, 0, SEEK_SET);
+	fprintf(fp, "1");//Arquivo flag é marcado com "1", indicando que o índice será alterado
+	fclose(fp);
+	return flag;
+}
+
 
 /*
 Carrega o arquivo de índices, no início do programa, do disco para a memória principal
 */
 void carrega_memoria(Arvore *T){
+	if(verifica_indice(T))
+		return;
+
 	FILE *fp;
+
 	fp = fopen("primario.ndx", "r");
+
 	if (fp == NULL){
 		nRRN = 0;
 		nRegistro = 0;
@@ -278,14 +329,22 @@ int main (){
 	cria_abb(T);
 	carrega_memoria(T);
 	FILE *f = fopen("dados.txt", "r");
+
 	if (f == NULL) //Verifica se há um arquivo de dados e se a tabela já foi lida
 		le_arquivo(T); //Função de leitura fornecida
 	menu(T);
-	FILE *fp = fopen("primario.ndx", "w");
-	fprintf(fp, "%d ", nRegistro);
-	fprintf(fp, "%d\n", nRRN);
-	grava_indice(T->raiz, fp);
-	fclose(fp);
+
+	FILE *fp1, *fp2;
+	fp1 = fopen("primario.ndx", "w");
+	fprintf(fp1, "%d ", nRegistro);
+	fprintf(fp1, "%d\n", nRRN);
+	grava_indice(T->raiz, fp1);
+	fclose(fp1);
+
+	fp2 = fopen("flag.txt", "w");
+	fprintf(fp2, "0");//Marca o arquivo flag com 0, indicando que está devidamente atualizado
+	fclose(fp2);
+
 	destroi_abb(T);
 
 	return 0;
