@@ -61,7 +61,6 @@ int verifica_indice(Arvore *T) {
 	return flag;
 }
 
-
 /*
 Carrega o arquivo de índices, no início do programa, do disco para a memória principal
 */
@@ -102,7 +101,6 @@ void grava_indice(no *n, FILE *fp) {
 	fprintf(fp, "%s %s\n", n->chave, n->rrn);
 	grava_indice(n->dir, fp);
 }
-
 
 void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 	FILE *fp;

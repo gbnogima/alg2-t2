@@ -1,0 +1,10 @@
+TRABALHO 2 DE ALGORITMOS E ESTRUTURAS DE DADOS II
+
+Alunos:
+Guilherme Brunassi Nogima (9771629)
+
+Carlos Henrique de Oliveira Franco (9771608)
+___________________________________________________
+Para executar:
+>gcc main.c ArvoreBinaria.c Aux.c -o t2
+>./t2
