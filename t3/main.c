@@ -6,7 +6,7 @@ Guilherme Brunassi Nogima (9771629)
 Carlos Henrique de Oliveira Franco (9771608)
 */
 
-#include "ArvoreBinaria.h"
+#include "btree.h"
 #include "Aux.h"
 
 #define TAMREG 84
@@ -15,10 +15,12 @@ Carlos Henrique de Oliveira Franco (9771608)
 int nRegistro;//Quantidade de registro
 int nRRN;//Quantidade de registros no arquivo de dados, incluindo os removidos
 
+
+
 /*
 Reconstrói o índice primário a partir do arquivo de dados caso seja detectado que ele está desatualizado
 */
-void reconstroi_indice(Arvore *T){
+void reconstroi_indice(bTree *T){
 	nRRN = 0;
 	nRegistro = 0;
 	FILE *fr;
@@ -28,81 +30,47 @@ void reconstroi_indice(Arvore *T){
 	char carro [21];
 	char rrn[6];
 	int j = 0;
+	
+	remove(BTFILE);
+
+	initBT(T);
+
 	while(fgets(nro, sizeof(nro), fr) != NULL){
 	 	fgets(nome, sizeof(nome), fr);
 	 	fgets(carro, sizeof(carro), fr);
-	 	nRRN++;
+	 	sprintf(rrn, "%d", nRRN++);
+		formata_rrn(rrn);
+		insert(T, atoi(nro), atoi(rrn)*REG_LEN);
 		if (nro[0] != '$'){
-			sprintf(rrn, "%d", nRegistro++);
-			formata_rrn(rrn);
-			insere_abb(&(T->raiz), nro, rrn);
+			nRegistro++;
 		}
 	}
 
 	fclose(fr);
 }
 
-/*
-Verifica se o indice está atualizado
-*/
-int verifica_indice(Arvore *T) {
-	FILE *fp;
-
-	fp = fopen("flag.txt", "r+");
-
-	int flag;
-	fscanf(fp, "%d", &flag);
-	if (flag == 1){
-		reconstroi_indice(T);
-	}
-	fseek(fp, 0, SEEK_SET);
-	fprintf(fp, "1");//Arquivo flag é marcado com "1", indicando que o índice será alterado
-	fclose(fp);
-	return flag;
-}
 
 /*
 Carrega o arquivo de índices, no início do programa, do disco para a memória principal
 */
-void carrega_memoria(Arvore *T){
-	if(verifica_indice(T))
-		return;
-
+void carrega_memoria(bTree *T){
 	FILE *fp;
 
-	fp = fopen("primario.ndx", "r");
+	fp = fopen("info.txt", "r");
 
 	if (fp == NULL){
 		nRRN = 0;
 		nRegistro = 0;
 		return;
 	}
-	char str1[4], str2[6], c;
+
 	fscanf(fp, "%d", &nRegistro);
 	fscanf(fp, "%d", &nRRN);
-	for (int i = 0; i < nRegistro; i++) {
-		getc(fp);
-		fgets(str1, sizeof(str1), fp);
-		getc(fp);
-		fgets(str2, sizeof(str2), fp);
-		insere_abb(&(T->raiz), str1, str2);
-	}
+
 	fclose(fp);
 }
 
-/*
-Grava o índice primário, armazenado em memória primária, no arquivo de índices no disco
-*/
-void grava_indice(no *n, FILE *fp) {
-	if (n == NULL) 
-		return;
-
-	grava_indice(n->esq, fp);
-	fprintf(fp, "%s %s\n", n->chave, n->rrn);
-	grava_indice(n->dir, fp);
-}
-
-void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
+int insere_arq(char *nro, char *nome, char *carro, bTree *T){
 	FILE *fp;
 	fp = fopen("dados.txt", "a");
 	formata_chave(nro);
@@ -114,12 +82,16 @@ void insere_arq(char *nro, char *nome, char *carro, Arvore *T){
 	sprintf(str, "%d", nRRN);
 	strcpy(rrn, str);
 	formata_rrn(rrn);
-	insere_abb(&(T->raiz), nro, rrn);
+	if(!insert(T, atoi(nro), atoi(rrn)*REG_LEN)){
+		printf("\n[Dado já cadastrado]\n");
+		return 0;
+	}
 	nRegistro++;
 	nRRN++;
+	return 1;
 }
 
-void inserir (Arvore *T) {
+void inserir (bTree *T) {
 	printf("[INSERIR]\n");
 	char nro[4];
 	char nome [41];
@@ -134,41 +106,56 @@ void inserir (Arvore *T) {
 	printf("Carro: ");
 	scanf("%[^\n]s", carro);
 	setbuf(stdin, NULL);
-	insere_arq(nro, nome, carro, T);
+	if (insere_arq(nro, nome, carro, T))
+		printf("\n[Dado inserido]\n");
 }
 
-void remove_arq (Arvore *T, int rrn) {
+void remove_arq (bTree *T, int offset) {
 	FILE *fp;
 	fp = fopen("dados.txt", "r+");
-	fseek(fp, rrn*REG_LEN, SEEK_SET);
+	fseek(fp, offset, SEEK_SET);
 	fputs("$", fp);
 	fclose(fp);
 	nRegistro--;
+	reconstroi_indice(T);
 }
 
-void remover (Arvore *T) {
+void remover (bTree *T) {
 	printf("[REMOVER]\n");
 	char nro[3];
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%[^\n]s", nro);
 	setbuf(stdin, NULL);
-	int rrn = busca_rrn_abb(T->raiz, nro);
-	remove_abb(&(T->raiz), nro);
-	remove_arq(T, rrn);
+
+	int offset = search(T, atoi(nro));
+	if (offset == -1){
+		printf("\n[Dado não encontrado]\n");
+		return;
+	}
+
+	remove_arq(T, offset);
+	printf("\n[Dado removido]\n");
+
 }
 
-void alterar (Arvore *T) {
+void alterar (bTree *T) {
 	printf("[ALTERAR]\n");
 	char nro[4];
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%s", nro);
 	setbuf(stdin, NULL);
-	int rrn = busca_rrn_abb(T->raiz, nro);
+
+	int offset = search(T, atoi(nro));
+	if (offset == -1){
+		printf("\n[Dado não encontrado]\n");
+		return;
+	}
+
 	FILE *fp;
 	fp = fopen("dados.txt", "r");
-	fseek(fp, rrn*REG_LEN, SEEK_SET);
+	fseek(fp, offset, SEEK_SET);
  	char nome [41], carro [21];
  	fgets(nro, sizeof(nro), fp);
  	fgets(nome, sizeof(nome), fp);
@@ -178,10 +165,7 @@ void alterar (Arvore *T) {
  	printf("CARRO: %s\n", formata_string(carro));
  	fclose(fp);
 
-
- 	remove_abb(&(T->raiz), nro);
-	remove_arq(T, rrn);
-
+ 	remove_arq(T, offset);
 
  	printf("\nSelecione um campo para alterar: \n1. NRO\n2. NOME\n3. CARRO\n");
  	int op;
@@ -206,21 +190,30 @@ void alterar (Arvore *T) {
 			insere_arq(nro, nome, carro, T);
 			break;
 	}
+	printf("\n[Dado alterado]\n");
 }
 
-void procurar (Arvore *T) {
+
+void procurar (bTree *T) {
 	printf("[PROCURAR]\n");
 	char nro[4];
 	printf("Insira os seguintes dados:\n");
 	printf("NRO: ");
 	scanf("%s", nro);
 	setbuf(stdin, NULL);
-	int rrn = busca_rrn_abb(T->raiz, nro);
+
+	int offset = search(T, atoi(nro)) ;
+	
+	if (offset == -1){
+		printf("\n[Dado não encontrado]\n");
+		return;
+	}
 	FILE *fp;
 	fp = fopen("dados.txt", "r");
-	fseek(fp, rrn*REG_LEN, SEEK_SET);
+	fseek(fp, offset, SEEK_SET);
  	char nome [41], carro [21];
  	fgets(nro, sizeof(nro), fp);
+
  	fgets(nome, sizeof(nome), fp);
  	fgets(carro, sizeof(carro), fp);
  	printf("NRO: %s\n", nro);	
@@ -229,8 +222,11 @@ void procurar (Arvore *T) {
  	fclose(fp);
 }
 
-void compactar (Arvore *T) {	
-	destroi_no(&(T->raiz));
+
+void compactar (bTree *T) {	
+	remove(BTFILE);
+	initBT(T);
+
 	FILE *fr, *fw;
 	fr = fopen("dados.txt", "r");
 	fw = fopen("dados_aux.txt", "w");
@@ -249,7 +245,7 @@ void compactar (Arvore *T) {
 			fputs(carro, fw);
 			sprintf(rrn, "%d", j++);
 			formata_rrn(rrn);
-			insere_abb(&(T->raiz), nro, rrn);
+			insert(T, atoi(nro), atoi(rrn)*REG_LEN);
 		}
 	}
 
@@ -258,9 +254,11 @@ void compactar (Arvore *T) {
 	remove("dados.txt");
 	rename("dados_aux.txt", "dados.txt");
 	nRRN = nRegistro;
+
+	printf("[Compactação concluída com sucesso]\n");
 }
 
-void le_arquivo (Arvore *T){
+void le_arquivo (bTree *T){
 	FILE *fp;
 	char str[100];
  	char nro[4];
@@ -285,7 +283,7 @@ void le_arquivo (Arvore *T){
 	fclose (fp);
 }
 
-void menu(Arvore *T) {
+void menu(bTree *T) {
 	int run = 1;
 	printf("\e[H\e[2J");
 	printf("TRABALHO DE ALG II\nAlunos: \n\tGuilherme Brunassi Nogima (9771629)\n\tCarlos Henrique de Oliveira Franco (9771608)\n");
@@ -323,27 +321,23 @@ void menu(Arvore *T) {
 }
 
 int main (){
-	Arvore *T = malloc(sizeof(Arvore));
-	cria_abb(T);
-	carrega_memoria(T);
+	bTree T ;
+	initBT(&T) ;
+
+	carrega_memoria(&T);
+
 	FILE *f = fopen("dados.txt", "r");
 
 	if (f == NULL) //Verifica se há um arquivo de dados e se a tabela já foi lida
-		le_arquivo(T); //Função de leitura fornecida
-	menu(T);
+		le_arquivo(&T); //Função de leitura fornecida
+	menu(&T);
 
-	FILE *fp1, *fp2;
-	fp1 = fopen("primario.ndx", "w");
+	FILE *fp1;
+	fp1 = fopen("info.txt", "w");
 	fprintf(fp1, "%d ", nRegistro);
 	fprintf(fp1, "%d\n", nRRN);
-	grava_indice(T->raiz, fp1);
 	fclose(fp1);
 
-	fp2 = fopen("flag.txt", "w");
-	fprintf(fp2, "0");//Marca o arquivo flag com 0, indicando que está devidamente atualizado
-	fclose(fp2);
-
-	destroi_abb(T);
 
 	return 0;
 }
